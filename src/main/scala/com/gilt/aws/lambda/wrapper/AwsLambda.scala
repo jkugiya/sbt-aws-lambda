@@ -13,6 +13,8 @@ trait AwsLambda {
   def getFunctionConfiguration(req: GetFunctionConfigurationRequest): Try[GetFunctionConfigurationResult]
   def updateFunctionConfiguration(req: UpdateFunctionConfigurationRequest): Try[UpdateFunctionConfigurationResult]
   def tagResource(req: TagResourceRequest): Try[TagResourceResult]
+  def publishVersion(
+      request: PublishVersionRequest): Try[PublishVersionResult]
 }
 
 object AwsLambda {
@@ -29,6 +31,7 @@ object AwsLambda {
       def getFunctionConfiguration(req: GetFunctionConfigurationRequest) = Try(client.getFunctionConfiguration(req))
       def updateFunctionConfiguration(req: UpdateFunctionConfigurationRequest) = Try(client.updateFunctionConfiguration(req))
       def tagResource(req: TagResourceRequest) = Try(client.tagResource(req))
+      def publishVersion(request: PublishVersionRequest) = Try(client.publishVersion(request))
     }
   }
 }
