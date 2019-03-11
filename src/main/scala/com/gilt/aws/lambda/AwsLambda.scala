@@ -3,11 +3,12 @@ package com.gilt.aws.lambda
 import java.time.Instant
 
 import software.amazon.awssdk.services.lambda.model._
-// import com.amazonaws.services.lambda.model._
 import scala.collection.JavaConverters._
 import scala.util.Try
 
 private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
+
+  private val defaultRuntime = Runtime.JAVA8
 
   def publishVersion(name: String, revisionId: String, version: String)
   : Try[PublishVersionResponse] = {
@@ -70,18 +71,18 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
         .functionName(functionName.value)
         .handler(handlerName.value)
         .role(roleName.value)
-        .runtime(Runtime.JAVA8)
+        .runtime(defaultRuntime)
         .environment(environment)
 
-    request = timeout.fold(request)(t => request.withTimeout(t.value))
-    request = memory.fold(request)(m => request.withMemorySize(m.value))
-    request = vpcConfig.fold(request)(request.withVpcConfig)
-    request = deadLetterName.fold(request)(d => request.withDeadLetterConfig(new DeadLetterConfig().withTargetArn(d.value)))
+    request = timeout.fold(request)(t => request.timeout(t.value))
+    request = memory.fold(request)(m => request.memorySize(m.value))
+    request = vpcConfig.fold(request)(request.vpcConfig)
+    request = deadLetterName.fold(request)(d => request.deadLetterConfig(DeadLetterConfig.builder.targetArn(d.value).build))
 
     for {
-      updateResult <- client.updateFunctionConfiguration(request)
-      _ = println(s"Updated lambda config ${updateResult.getFunctionArn}")
-      _ <- publishVersion(name = updateResult.getFunctionName, revisionId = updateResult.getRevisionId, version = version)
+      updateResult <- client.updateFunctionConfiguration(request.build)
+      _ = println(s"Updated lambda config ${updateResult.functionArn}")
+      _ <- publishVersion(name = updateResult.functionName, revisionId = updateResult.revisionId, version = version)
     } yield {
       updateResult
     }
@@ -98,22 +99,22 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
                    environment: Environment,
                    version: String): Try[CreateFunctionResponse] = {
 
-    var request = new CreateFunctionRequest()
-      .withFunctionName(functionName.value)
-      .withHandler(handlerName.value)
-      .withRole(roleName.value)
-      .withRuntime(com.amazonaws.services.lambda.model.Runtime.Java8)
-      .withEnvironment(environment)
-      .withCode(functionCode)
-    request = timeout.fold(request)(t => request.withTimeout(t.value))
-    request = memory.fold(request)(m => request.withMemorySize(m.value))
-    request = vpcConfig.fold(request)(request.withVpcConfig)
-    request = deadLetterName.fold(request)(n => request.withDeadLetterConfig(new DeadLetterConfig().withTargetArn(n.value)))
+    var request = CreateFunctionRequest.builder
+      .functionName(functionName.value)
+      .handler(handlerName.value)
+      .role(roleName.value)
+      .runtime(defaultRuntime)
+      .environment(environment)
+      .code(functionCode)
+    request = timeout.fold(request)(t => request.timeout(t.value))
+    request = memory.fold(request)(m => request.memorySize(m.value))
+    request = vpcConfig.fold(request)(request.vpcConfig)
+    request = deadLetterName.fold(request)(n => request.deadLetterConfig(DeadLetterConfig.builder.targetArn(n.value).build))
 
     for {
-      createResult <- client.createFunction(request)
-      _ = println(s"Create lambda ${createResult.getFunctionArn}")
-      _ <- publishVersion(name = createResult.getFunctionName, revisionId = createResult.getRevisionId, version = version)
+      createResult <- client.createFunction(request.build)
+      _ = println(s"Create lambda ${createResult.functionArn}")
+      _ <- publishVersion(name = createResult.functionName, revisionId = createResult.revisionId, version = version)
     } yield {
       createResult
     }
