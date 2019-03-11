@@ -9,13 +9,24 @@ import scala.util.Try
 
 private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
 
-  def updateLambdaWithFunctionCodeRequest(updateFunctionCodeRequest: UpdateFunctionCodeRequest): Try[UpdateFunctionCodeResponse] = {
-    println(s"Updating lambda code ${updateFunctionCodeRequest.functionName}")
-    client.updateFunctionCode(updateFunctionCodeRequest)
-      .map { result =>
-        println(s"Updated lambda code ${result.functionArn}")
-        result
-      }
+  def publishVersion(name: String, revisionId: String, version: String)
+  : Try[PublishVersionResult] = {
+    val request = new PublishVersionRequest()
+      .withFunctionName(name)
+      .withRevisionId(revisionId)
+      .withDescription(version)
+    client.publishVersion(request)
+  }
+
+  def updateLambdaWithFunctionCodeRequest(updateFunctionCodeRequest: UpdateFunctionCodeRequest, version: String): Try[UpdateFunctionCodeResult] = {
+    println(s"Updating lambda code ${updateFunctionCodeRequest.getFunctionName}")
+    for {
+      updateResult <- client.updateFunctionCode(updateFunctionCodeRequest)
+      _ = println(s"Updated lambda code ${updateResult.getFunctionArn}")
+      _ <- publishVersion(name = updateResult.getFunctionName, revisionId = updateResult.getRevisionId, version = version)
+    } yield {
+      updateResult
+    }
   }
 
   def tagLambda(functionArn: String, version: String) = {
@@ -49,7 +60,8 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
                          memory: Option[Memory],
                          deadLetterName: Option[DeadLetterARN],
                          vpcConfig: Option[VpcConfig],
-                         environment: Environment): Try[UpdateFunctionConfigurationResponse] = {
+                         environment: Environment,
+                         version: String): Try[UpdateFunctionConfigurationResult] = {
 
     var request = new UpdateFunctionConfigurationRequest()
         .withFunctionName(functionName.value)
@@ -63,11 +75,13 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     request = vpcConfig.fold(request)(request.withVpcConfig)
     request = deadLetterName.fold(request)(d => request.withDeadLetterConfig(new DeadLetterConfig().withTargetArn(d.value)))
 
-    client.updateFunctionConfiguration(request)
-      .map { result =>
-        println(s"Updated lambda config ${result.getFunctionArn}")
-        result
-      }
+    for {
+      updateResult <- client.updateFunctionConfiguration(request)
+      _ = println(s"Updated lambda config ${updateResult.getFunctionArn}")
+      _ <- publishVersion(name = updateResult.getFunctionName, revisionId = updateResult.getRevisionId, version = version)
+    } yield {
+      updateResult
+    }
   }
 
   def createLambda(functionName: LambdaName,
@@ -78,7 +92,8 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
                    deadLetterName: Option[DeadLetterARN],
                    vpcConfig: Option[VpcConfig],
                    functionCode: FunctionCode,
-                   environment: Environment): Try[CreateFunctionResponse] = {
+                   environment: Environment,
+                   version: String): Try[CreateFunctionResult] = {
 
     var request = new CreateFunctionRequest()
       .withFunctionName(functionName.value)
@@ -92,11 +107,12 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     request = vpcConfig.fold(request)(request.withVpcConfig)
     request = deadLetterName.fold(request)(n => request.withDeadLetterConfig(new DeadLetterConfig().withTargetArn(n.value)))
 
-    client.createFunction(request)
-      .map { result =>
-        println(s"Created Lambda: ${result.functionArn}")
-        result
-      }
-
+    for {
+      createResult <- client.createFunction(request)
+      _ = println(s"Create lambda ${createResult.getFunctionArn}")
+      _ <- publishVersion(name = createResult.getFunctionName, revisionId = createResult.getRevisionId, version = version)
+    } yield {
+      createResult
+    }
   }
 }

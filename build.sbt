@@ -1,6 +1,6 @@
 import scala.sys.process._
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.8"
 
 name := "sbt-aws-lambda"
 
@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
 
 javaVersionPrefix in javaVersionCheck := Some("1.8")
 
-crossSbtVersions := List("0.13.18", "1.2.7")
+crossSbtVersions := List("0.13.18", "1.2.8")
 
 releaseCrossBuild := true
 

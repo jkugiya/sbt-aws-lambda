@@ -9,11 +9,13 @@ import com.gilt.aws.lambda.Region
 import software.amazon.awssdk.services.lambda.model._
 
 trait AwsLambda {
-  def createFunction(req: CreateFunctionRequest): Try[CreateFunctionResponse]
-  def updateFunctionCode(req: UpdateFunctionCodeRequest): Try[UpdateFunctionCodeResponse]
-  def getFunctionConfiguration(req: GetFunctionConfigurationRequest): Try[GetFunctionConfigurationResponse]
-  def updateFunctionConfiguration(req: UpdateFunctionConfigurationRequest): Try[UpdateFunctionConfigurationResponse]
-  def tagResource(req: TagResourceRequest): Try[TagResourceResponse]
+  def createFunction(req: CreateFunctionRequest): Try[CreateFunctionResult]
+  def updateFunctionCode(req: UpdateFunctionCodeRequest): Try[UpdateFunctionCodeResult]
+  def getFunctionConfiguration(req: GetFunctionConfigurationRequest): Try[GetFunctionConfigurationResult]
+  def updateFunctionConfiguration(req: UpdateFunctionConfigurationRequest): Try[UpdateFunctionConfigurationResult]
+  def tagResource(req: TagResourceRequest): Try[TagResourceResult]
+  def publishVersion(
+      request: PublishVersionRequest): Try[PublishVersionResult]
 }
 
 object AwsLambda {
@@ -30,6 +32,7 @@ object AwsLambda {
       def getFunctionConfiguration(req: GetFunctionConfigurationRequest) = Try(client.getFunctionConfiguration(req))
       def updateFunctionConfiguration(req: UpdateFunctionConfigurationRequest) = Try(client.updateFunctionConfiguration(req))
       def tagResource(req: TagResourceRequest) = Try(client.tagResource(req))
+      def publishVersion(request: PublishVersionRequest) = Try(client.publishVersion(request))
     }
   }
 }
