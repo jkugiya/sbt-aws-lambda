@@ -15,20 +15,21 @@ private[lambda] class AwsIAM(client: wrapper.AmazonIdentityManagement) {
   def basicLambdaRole(): Option[Role] = {
     client.listRoles()
       .toOption
-      .flatMap { result =>
-        result.getRoles.asScala.find(_.getRoleName == AwsIAM.BasicLambdaRoleName)
+      .flatMap { response =>
+        response.roles.asScala.find(_.roleName == AwsIAM.BasicLambdaRoleName)
       }
   }
 
   def createBasicLambdaRole(): Try[RoleARN] = {
     val createRoleRequest = {
       val policyDocument = """{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}"""
-      new CreateRoleRequest()
-        .withRoleName(AwsIAM.BasicLambdaRoleName)
-        .withAssumeRolePolicyDocument(policyDocument)
+      CreateRoleRequest.builder
+        .roleName(AwsIAM.BasicLambdaRoleName)
+        .assumeRolePolicyDocument(policyDocument)
+        .build
     }
 
     client.createRole(createRoleRequest)
-      .map { result => RoleARN(result.getRole.getArn) }
+      .map { result => RoleARN(result.role.arn) }
   }
 }
