@@ -8,6 +8,7 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success}
 import sbt.Keys._
 import sbt._
+import software.amazon.awssdk.regions.Region
 
 object AwsLambdaPlugin extends AutoPlugin {
 
@@ -187,7 +188,7 @@ object AwsLambdaPlugin extends AutoPlugin {
 
     val resolvedVpcConfig = {
       val config_ = resolvedVpcConfigSubnetIds.map(ids => VpcConfig.builder.subnetIds(ids.value.split(",") :_*).build)
-      resolvedVpcConfigSecurityGroupIds.fold(config_)(ids => Some(config_.getOrElse(VpcConfig.builder).securityGroupIds(ids.value.split(",") :_*)))
+      resolvedVpcConfigSecurityGroupIds.fold(config_)(ids => Some(config_.getOrElse(VpcConfig.builder.securityGroupIds(ids.value.split(",") :_*).build)))
     }
 
     val lambdaClient = new AwsLambda(wrapper.AwsLambda.instance(resolvedRegion))
@@ -215,21 +216,21 @@ object AwsLambdaPlugin extends AutoPlugin {
               sys.error(s"Unsupported deploy method: $resolvedDeployMethod")
             }
           }
-          lambdaClient.createLambda(resolvedLambdaName, resolvedHandlerName, resolvedRoleName, resolvedTimeout, resolvedMemory, resolvedDeadLetterArn, resolvedVpcConfig, functionCode, resolvedEnvironment, version).map(_.getFunctionArn)
+          lambdaClient.createLambda(resolvedLambdaName, resolvedHandlerName, resolvedRoleName, resolvedTimeout, resolvedMemory, resolvedDeadLetterArn, resolvedVpcConfig, functionCode, resolvedEnvironment, version).map(_.functionArn)
         }{ currentConfig =>
-          val currentEnv = Option(currentConfig.environment).fold(Collections.emptyMap[String, String]())(_.getVariables)
+          val currentEnv = Option(currentConfig.environment).fold(Collections.emptyMap[String, String]())(_.variables)
           val (envUpdated, resolvedEnvironment) = computeEnvironment(currentEnv, environment)
           if (currentConfig.handler != resolvedHandlerName.value ||
               currentConfig.role != resolvedRoleName.value ||
-              currentConfig.runtime != Runtime.JAVA8 ||
+              currentConfig.runtime != software.amazon.awssdk.services.lambda.model.Runtime.JAVA8 ||
               envUpdated ||
               resolvedTimeout.exists(t => Integer.valueOf(t.value) != currentConfig.timeout) ||
               resolvedMemory.exists(m => Integer.valueOf(m.value) != currentConfig.memorySize) ||
-              resolvedVpcConfig.exists(vpn => currentConfig.getVpcConfig == null || vpn.getSecurityGroupIds != currentConfig.getVpcConfig.getSecurityGroupIds || vpn.getSubnetIds != currentConfig.getVpcConfig.getSubnetIds)
+              resolvedVpcConfig.exists(vpn => currentConfig.vpcConfig == null || vpn.securityGroupIds != currentConfig.vpcConfig.securityGroupIds || vpn.subnetIds != currentConfig.vpcConfig.subnetIds)
           ) {
             println(s"Updating existing lambda: ${resolvedLambdaName.value}")
             lambdaClient.updateLambdaConfig(resolvedLambdaName, resolvedHandlerName, resolvedRoleName, resolvedTimeout, resolvedMemory,
-              resolvedDeadLetterArn, resolvedVpcConfig, resolvedEnvironment, version).map(_.getFunctionArn)
+              resolvedDeadLetterArn, resolvedVpcConfig, resolvedEnvironment, version).map(_.functionArn)
           } else {
             println(s"Skipping unchanged lambda: ${resolvedLambdaName.value}")
             Success(currentConfig.functionArn)
@@ -257,8 +258,8 @@ object AwsLambdaPlugin extends AutoPlugin {
     val resolvedVpcConfigSecurityGroupIds = resolveVpcConfigSecurityGroupIds(vpcConfigSecurityGroupIds)
 
     val resolvedVpcConfig = {
-      val config_ = resolvedVpcConfigSubnetIds.map(ids => new VpcConfig().withSubnetIds(ids.value.split(",") :_*))
-      resolvedVpcConfigSecurityGroupIds.fold(config_)(ids => Some(config_.getOrElse(new VpcConfig()).withSecurityGroupIds(ids.value.split(",") :_*)))
+      val config_ = resolvedVpcConfigSubnetIds.map(ids => VpcConfig.builder.subnetIds(ids.value.split(",") :_*).build)
+      resolvedVpcConfigSecurityGroupIds.fold(config_)(ids => Some(config_.getOrElse(VpcConfig.builder.securityGroupIds(ids.value.split(",") :_*).build)))
     }
     val (_, resolvedEnvironment) = computeEnvironment(Collections.emptyMap(), environment)
 
@@ -270,7 +271,7 @@ object AwsLambdaPlugin extends AutoPlugin {
       s3Client.pushJarToS3(jar, resolvedBucketId, resolvedS3KeyPrefix) match {
         case Success(_) =>
           for ((resolvedLambdaName, resolvedHandlerName) <- resolvedLambdaHandlers) yield {
-            val functionCode = FunctionCode.builder.withS3Bucket(resolvedBucketId.value).withS3Key(jar.getName)
+            val functionCode = FunctionCode.builder.s3Bucket(resolvedBucketId.value).s3Key(jar.getName).build
 
             createLambdaWithFunctionCode(resolvedRegion, resolvedRoleName, resolvedTimeout, resolvedMemory,
               resolvedLambdaName, resolvedHandlerName, resolvedDeadLetterArn, resolvedVpcConfig, functionCode, resolvedEnvironment, version)
@@ -295,14 +296,14 @@ object AwsLambdaPlugin extends AutoPlugin {
     lambdaClient.createLambda(resolvedLambdaName, resolvedHandlerName, resolvedRoleName,
       resolvedTimeout, resolvedMemory, resolvedDeadLetterArn, vpcConfig, functionCode, environment, version) match {
       case Success(createFunctionCodeResult) =>
-        resolvedLambdaName.value -> LambdaARN(createFunctionCodeResult.getFunctionArn)
+        resolvedLambdaName.value -> LambdaARN(createFunctionCodeResult.functionArn)
       case Failure(exception) =>
         sys.error(s"Failed to create lambda function: ${formatException(exception)}")
     }
   }
 
-  private def resolveRegion(sbtSettingValueOpt: Option[String]): Region =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.region) map Region getOrElse promptUserForRegion()
+  private def resolveRegion(sbtSettingValueOpt: Option[String]): software.amazon.awssdk.regions.Region =
+    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.region) map (Region.of(_)) getOrElse promptUserForRegion()
 
   private def resolveDeployMethod(sbtSettingValueOpt: Option[String]): DeployMethod =
     sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.deployMethod) map DeployMethod getOrElse promptUserForDeployMethod()
@@ -341,10 +342,10 @@ object AwsLambdaPlugin extends AutoPlugin {
   private def resolveVpcConfigSecurityGroupIds(sbtSettingValueOpt: Option[String]): Option[VpcConfigSecurityGroupIds] =
     sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.vpcConfigSecurityGroupIds).map(_.toString) map VpcConfigSecurityGroupIds
 
-  private def promptUserForRegion(): Region = {
+  private def promptUserForRegion(): software.amazon.awssdk.regions.Region = {
     val inputValue = readInput(s"Enter the name of the AWS region to connect to. (You also could have set the environment variable: ${EnvironmentVariables.region} or the sbt setting: region)")
 
-    Region(inputValue)
+    Region.of(inputValue)
   }
 
   private def promptUserForDeployMethod(): DeployMethod = {
