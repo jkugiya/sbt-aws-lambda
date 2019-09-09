@@ -1,6 +1,6 @@
 import scala.sys.process._
 
-scalaVersion := "2.12.8"
+scalaVersion := "2.12.9"
 
 name := "sbt-aws-lambda"
 
