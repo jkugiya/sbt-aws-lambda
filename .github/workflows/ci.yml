@@ -24,4 +24,4 @@ jobs:
     - name: print Java version
       run: java -version
     - name: Run tests
-      run: sbt "^ test"
+      run: sbt ^^${{ matrix.scala }} "^ test"
