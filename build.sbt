@@ -28,8 +28,6 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
 )
 
-javaVersionPrefix in javaVersionCheck := Some("1.8")
-
 releaseCrossBuild := true
 
 releasePublishArtifactsAction := PgpKeys.publishSigned.value
