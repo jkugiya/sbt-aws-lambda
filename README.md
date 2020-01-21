@@ -5,7 +5,7 @@ sbt plugin to deploy code to AWS Lambda
 [![Join the chat at https://gitter.im/saksdirect/sbt-aws-lambda](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/saksdirect/sbt-aws-lambda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.gilt.sbt/sbt-aws-lambda/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/com.gilt.sbt/sbt-aws-lambda)
 
 
-This plugin is available for both sbt 1.x and 0.13.x. The latest version (0.7.0) was released on 22/Feb/2019.
+This plugin is available for sbt 1.x. The latest version (1.0.0) was released on 21/Jan/2020.
 
 Installation
 ------------
@@ -13,7 +13,7 @@ Installation
 Add the following to your `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("com.gilt.sbt" % "sbt-aws-lambda" % "0.7.0")
+addSbtPlugin("org.gfccollective" % "sbt-aws-lambda" % "1.0.0")
 ```
 
 Add the `AwsLambdaPlugin` auto-plugin to your build.sbt:
@@ -51,7 +51,7 @@ sbt-aws-lambda can be configured using sbt settings, environment variables or by
 | s3Bucket |  AWS_LAMBDA_BUCKET_ID | The name of an S3 bucket where the lambda code will be stored |
 | s3KeyPrefix | AWS_LAMBDA_S3_KEY_PREFIX | The prefix to the S3 key where the jar will be uploaded |
 | lambdaName |    AWS_LAMBDA_NAME   |   The name to use for this AWS Lambda function. Defaults to the project name |
-| handlerName | AWS_LAMBDA_HANDLER_NAME |    Java class name and method to be executed, e.g. `com.gilt.example.Lambda::myMethod` |
+| handlerName | AWS_LAMBDA_HANDLER_NAME |    Java class name and method to be executed, e.g. `com.example.Lambda::myMethod` |
 | roleArn | AWS_LAMBDA_IAM_ROLE_ARN |The [ARN](http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html "AWS ARN documentation") of an [IAM](https://aws.amazon.com/iam/ "AWS IAM documentation") role to use when creating a new Lambda |
 | region |  AWS_REGION | The name of the AWS region to connect to. Defaults to `us-east-1` |
 | awsLambdaTimeout | AWS_LAMBDA_TIMEOUT | The Lambda timeout in seconds (1-900). Defaults to AWS default. |
@@ -72,16 +72,16 @@ retrieveManaged := true
 enablePlugins(AwsLambdaPlugin)
 
 lambdaHandlers := Seq(
-  "function1"                 -> "com.gilt.example.Lambda::handleRequest1",
-  "function2"                 -> "com.gilt.example.Lambda::handleRequest2",
-  "function3"                 -> "com.gilt.example.OtherLambda::handleRequest3"
+  "function1"                 -> "com.example.Lambda::handleRequest1",
+  "function2"                 -> "com.example.Lambda::handleRequest2",
+  "function3"                 -> "com.example.OtherLambda::handleRequest3"
 )
 
 // or, instead of the above, for just one function/handler
 //
 // lambdaName := Some("function1")
 //
-// handlerName := Some("com.gilt.example.Lambda::handleRequest1")
+// handlerName := Some("com.example.Lambda::handleRequest1")
 
 s3Bucket := Some("lambda-jars")
 
@@ -116,7 +116,7 @@ packageLambda := (packageBin in Compile).value
 Publishing new versions of this plugin
 --------------------------------------
 
-This plugin uses [sbt-sonatype](https://github.com/xerial/sbt-sonatype) to publish to Gilt's account on maven central
+This plugin uses [sbt-sonatype](https://github.com/xerial/sbt-sonatype) to publish to maven central
 
 ```
 sbt publishSigned sonatypeRelease
