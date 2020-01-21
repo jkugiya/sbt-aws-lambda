@@ -7,7 +7,7 @@ publishArtifact in Test := false
 
 pomIncludeRepository := { _ => false }
 
-sonatypeProfileName := "com.gilt"
+sonatypeProfileName := "org.gfccollective"
 
 pomExtra := {
   <url>https://github.com/gfc-collective/sbt-aws-lambda</url>
