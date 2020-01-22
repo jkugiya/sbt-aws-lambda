@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ '1.8.0', '11.0.x' ]
+        java: [ '1.8.0', '11.0.x', '13.0.x' ]
         scala: [ '2.13.1', '2.12.10' ]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
@@ -24,4 +24,4 @@ jobs:
     - name: print Java version
       run: java -version
     - name: Run tests
-      run: sbt ^^${{ matrix.scala }} "^ test"
+      run: sbt ++${{ matrix.scala }} clean test
