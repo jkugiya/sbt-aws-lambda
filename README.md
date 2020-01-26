@@ -1,9 +1,7 @@
 # sbt-aws-lambda [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.gfccollective/sbt-aws-lambda/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/org.gfccollective/sbt-aws-lambda) [![Build Status](https://github.com/gfc-collective/sbt-aws-lambda/workflows/Scala%20CI/badge.svg)](https://github.com/gfc-collective/sbt-aws-lambda/actions) [![Coverage Status](https://coveralls.io/repos/gfc-collective/sbt-aws-lambda/badge.svg?branch=master&service=github)](https://coveralls.io/github/gfc-collective/sbt-aws-lambda?branch=master)
 
-sbt plugin to deploy code to AWS Lambda
-
-[![Join the chat at https://gitter.im/saksdirect/sbt-aws-lambda](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/saksdirect/sbt-aws-lambda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.gilt.sbt/sbt-aws-lambda/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/com.gilt.sbt/sbt-aws-lambda)
-
+An sbt plugin to deploy code to AWS Lambda.
+A fork and new home of the unmaintained Gilt sbt plugin, now under the [GFC Collective](https://github.com/gfc-collective) umbrella, maintained by some of the original authors.
 
 This plugin is available for sbt 1.x. The latest version (1.0.0) was released on 21/Jan/2020.
 
