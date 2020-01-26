@@ -1,4 +1,4 @@
-# sbt-aws-lambda
+# sbt-aws-lambda [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.gfccollective/sbt-aws-lambda/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/org.gfccollective/sbt-aws-lambda) [![Build Status](https://github.com/gfc-collective/sbt-aws-lambda/workflows/Scala%20CI/badge.svg)](https://github.com/gfc-collective/sbt-aws-lambda/actions) [![Coverage Status](https://coveralls.io/repos/gfc-collective/sbt-aws-lambda/badge.svg?branch=master&service=github)](https://coveralls.io/github/gfc-collective/sbt-aws-lambda?branch=master)
 
 sbt plugin to deploy code to AWS Lambda
 
