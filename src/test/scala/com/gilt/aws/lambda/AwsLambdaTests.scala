@@ -173,7 +173,8 @@ object AwsLambdaTests extends TestSuite {
     memory: Option[Memory] = None,
     deadLetterArn: Option[DeadLetterARN] = None,
     vpcConfig: Option[VpcConfig] = None,
-    environment: Environment = new Environment()
+    environment: Environment = new Environment(),
+    lambdaRuntime: Runtime = Runtime.Java8,
   ) = new AwsLambda(client).updateLambdaConfig(
     lambdaName,
     handlerName,
@@ -183,6 +184,7 @@ object AwsLambdaTests extends TestSuite {
     deadLetterArn,
     vpcConfig,
     environment,
+    lambdaRuntime,
     ""
   )
 
@@ -347,7 +349,8 @@ object AwsLambdaTests extends TestSuite {
     deadLetterArn: Option[DeadLetterARN] = None,
     vpcConfig: Option[VpcConfig] = None,
     functionCode: FunctionCode = new FunctionCode(),
-    environment: Environment = new Environment()
+    environment: Environment = new Environment(),
+    lambdaRuntime: Runtime = Runtime.Java8,
   ) = new AwsLambda(client).createLambda(
     lambdaName,
     handlerName,
@@ -358,6 +361,7 @@ object AwsLambdaTests extends TestSuite {
     vpcConfig,
     functionCode,
     environment,
+    lambdaRuntime,
     ""
   )
 

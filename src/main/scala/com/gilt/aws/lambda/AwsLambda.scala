@@ -71,6 +71,7 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     deadLetterName: Option[DeadLetterARN],
     vpcConfig: Option[VpcConfig],
     environment: Environment,
+    runtime: Runtime,
     version: String,
   ): Try[UpdateFunctionConfigurationResult] = {
 
@@ -78,7 +79,7 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
         .withFunctionName(functionName.value)
         .withHandler(handlerName.value)
         .withRole(roleName.value)
-        .withRuntime(Runtime.Java8)
+        .withRuntime(runtime)
         .withEnvironment(environment)
 
     request = timeout.fold(request)(t => request.withTimeout(t.value))
@@ -105,6 +106,7 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     vpcConfig: Option[VpcConfig],
     functionCode: FunctionCode,
     environment: Environment,
+    runtime: Runtime,
     version: String,
   ): Try[CreateFunctionResult] = {
 
@@ -112,7 +114,7 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
       .withFunctionName(functionName.value)
       .withHandler(handlerName.value)
       .withRole(roleName.value)
-      .withRuntime(Runtime.Java8)
+      .withRuntime(runtime)
       .withEnvironment(environment)
       .withCode(functionCode)
     request = timeout.fold(request)(t => request.withTimeout(t.value))
