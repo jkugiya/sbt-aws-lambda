@@ -3,7 +3,7 @@
 An sbt plugin to deploy code to AWS Lambda.
 A fork and new home of the unmaintained Gilt sbt plugin, now under the [GFC Collective](https://github.com/gfc-collective) umbrella, maintained by some of the original authors.
 
-This plugin is available for sbt 1.x. The latest version (1.0.0) was released on 21/Jan/2020.
+This plugin is available for sbt 1.x. The latest version (1.1.0) was released on 27/Jan/2020.
 
 Installation
 ------------
@@ -11,7 +11,7 @@ Installation
 Add the following to your `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("org.gfccollective" % "sbt-aws-lambda" % "1.0.0")
+addSbtPlugin("org.gfccollective" % "sbt-aws-lambda" % "1.1.0")
 ```
 
 Add the `AwsLambdaPlugin` auto-plugin to your build.sbt:
