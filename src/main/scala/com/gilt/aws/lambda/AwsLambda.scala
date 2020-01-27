@@ -7,8 +7,11 @@ import scala.util.Try
 
 private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
 
-  def publishVersion(name: String, revisionId: String, version: String)
-  : Try[PublishVersionResult] = {
+  def publishVersion(
+    name: String,
+    revisionId: String,
+    version: String,
+  ): Try[PublishVersionResult] = {
     val request = new PublishVersionRequest()
       .withFunctionName(name)
       .withRevisionId(revisionId)
@@ -16,7 +19,10 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     client.publishVersion(request)
   }
 
-  def updateLambdaWithFunctionCodeRequest(updateFunctionCodeRequest: UpdateFunctionCodeRequest, version: String): Try[UpdateFunctionCodeResult] = {
+  def updateLambdaWithFunctionCodeRequest(
+    updateFunctionCodeRequest: UpdateFunctionCodeRequest,
+    version: String,
+  ): Try[UpdateFunctionCodeResult] = {
     println(s"Updating lambda code ${updateFunctionCodeRequest.getFunctionName}")
     for {
       updateResult <- client.updateFunctionCode(updateFunctionCodeRequest)
@@ -27,7 +33,10 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     }
   }
 
-  def tagLambda(functionArn: String, version: String) = {
+  def tagLambda(
+    functionArn: String,
+    version: String,
+  ): Try[TagResourceResult] = {
     val tags = Map(
       "deploy.code.version" -> version,
       "deploy.timestamp" -> Instant.now.toString
@@ -40,7 +49,9 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     client.tagResource(tagResourceReq)
   }
 
-  def getLambdaConfig(functionName: LambdaName): Try[Option[GetFunctionConfigurationResult]] = {
+  def getLambdaConfig(
+    functionName: LambdaName,
+  ): Try[Option[GetFunctionConfigurationResult]] = {
     val request = new GetFunctionConfigurationRequest()
       .withFunctionName(functionName.value)
 
@@ -51,21 +62,23 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
       }
   }
 
-  def updateLambdaConfig(functionName: LambdaName,
-                         handlerName: HandlerName,
-                         roleName: RoleARN,
-                         timeout:  Option[Timeout],
-                         memory: Option[Memory],
-                         deadLetterName: Option[DeadLetterARN],
-                         vpcConfig: Option[VpcConfig],
-                         environment: Environment,
-                         version: String): Try[UpdateFunctionConfigurationResult] = {
+  def updateLambdaConfig(
+    functionName: LambdaName,
+    handlerName: HandlerName,
+    roleName: RoleARN,
+    timeout:  Option[Timeout],
+    memory: Option[Memory],
+    deadLetterName: Option[DeadLetterARN],
+    vpcConfig: Option[VpcConfig],
+    environment: Environment,
+    version: String,
+  ): Try[UpdateFunctionConfigurationResult] = {
 
     var request = new UpdateFunctionConfigurationRequest()
         .withFunctionName(functionName.value)
         .withHandler(handlerName.value)
         .withRole(roleName.value)
-        .withRuntime(com.amazonaws.services.lambda.model.Runtime.Java8)
+        .withRuntime(Runtime.Java8)
         .withEnvironment(environment)
 
     request = timeout.fold(request)(t => request.withTimeout(t.value))
@@ -82,22 +95,24 @@ private[lambda] class AwsLambda(client: wrapper.AwsLambda) {
     }
   }
 
-  def createLambda(functionName: LambdaName,
-                   handlerName: HandlerName,
-                   roleName: RoleARN,
-                   timeout:  Option[Timeout],
-                   memory: Option[Memory],
-                   deadLetterName: Option[DeadLetterARN],
-                   vpcConfig: Option[VpcConfig],
-                   functionCode: FunctionCode,
-                   environment: Environment,
-                   version: String): Try[CreateFunctionResult] = {
+  def createLambda(
+    functionName: LambdaName,
+    handlerName: HandlerName,
+    roleName: RoleARN,
+    timeout:  Option[Timeout],
+    memory: Option[Memory],
+    deadLetterName: Option[DeadLetterARN],
+    vpcConfig: Option[VpcConfig],
+    functionCode: FunctionCode,
+    environment: Environment,
+    version: String,
+  ): Try[CreateFunctionResult] = {
 
     var request = new CreateFunctionRequest()
       .withFunctionName(functionName.value)
       .withHandler(handlerName.value)
       .withRole(roleName.value)
-      .withRuntime(com.amazonaws.services.lambda.model.Runtime.Java8)
+      .withRuntime(Runtime.Java8)
       .withEnvironment(environment)
       .withCode(functionCode)
     request = timeout.fold(request)(t => request.withTimeout(t.value))

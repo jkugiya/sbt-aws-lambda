@@ -5,7 +5,9 @@ import java.nio.ByteBuffer
 
 object FileOps {
 
-  def fileToBuffer(file: File): ByteBuffer = {
+  def fileToBuffer(
+    file: File,
+  ): ByteBuffer = {
     val buffer = ByteBuffer.allocate(file.length().toInt)
     val aFile = new RandomAccessFile(file, "r")
     val inChannel = aFile.getChannel()

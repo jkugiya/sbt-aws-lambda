@@ -3,7 +3,7 @@ package com.gilt.aws.lambda
 import java.util.{Collections, Map => JMap}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success}
-import com.amazonaws.services.lambda.model.{Environment, FunctionCode, UpdateFunctionCodeRequest, VpcConfig}
+import com.amazonaws.services.lambda.model.{Environment, FunctionCode, Runtime, UpdateFunctionCodeRequest, VpcConfig}
 import sbt.Keys._
 import sbt._
 
@@ -111,8 +111,16 @@ object AwsLambdaPlugin extends AutoPlugin {
     packageLambda := sbtassembly.AssemblyKeys.assembly.value
   )
 
-  private def doDeployLambda(deployMethod: Option[String], region: Option[String], jar: File, s3Bucket: Option[String], s3KeyPrefix: Option[String],
-                             lambdaName: Option[String], handlerName: Option[String], lambdaHandlers: Seq[(String, String)], version: String): Map[String, LambdaARN] = {
+  private def doDeployLambda(
+    deployMethod: Option[String],
+    region: Option[String],
+    jar: File, s3Bucket: Option[String],
+    s3KeyPrefix: Option[String],
+    lambdaName: Option[String],
+    handlerName: Option[String],
+    lambdaHandlers: Seq[(String, String)],
+    version: String,
+  ): Map[String, LambdaARN] = {
     val resolvedDeployMethod = resolveDeployMethod(deployMethod)
     val resolvedRegion = resolveRegion(region)
     val resolvedLambdaHandlers = resolveLambdaHandlers(lambdaName, handlerName, lambdaHandlers)
@@ -124,14 +132,15 @@ object AwsLambdaPlugin extends AutoPlugin {
       val resolvedS3KeyPrefix = resolveS3KeyPrefix(s3KeyPrefix)
 
       s3Client.pushJarToS3(jar, resolvedBucketId, resolvedS3KeyPrefix) match {
-        case Success(s3Key) => (for (resolvedLambdaName <- resolvedLambdaHandlers.keys) yield {
-          val updateFunctionCodeRequest = new UpdateFunctionCodeRequest()
-            .withFunctionName(resolvedLambdaName.value)
-            .withS3Bucket(resolvedBucketId.value)
-            .withS3Key(s3Key.value)
+        case Success(s3Key) =>
+          (for (resolvedLambdaName <- resolvedLambdaHandlers.keys) yield {
+            val updateFunctionCodeRequest = new UpdateFunctionCodeRequest()
+              .withFunctionName(resolvedLambdaName.value)
+              .withS3Bucket(resolvedBucketId.value)
+              .withS3Key(s3Key.value)
 
-          updateFunctionCode(resolvedRegion, resolvedLambdaName, updateFunctionCodeRequest, version)
-        }).toMap
+            updateFunctionCode(resolvedRegion, resolvedLambdaName, updateFunctionCodeRequest, version)
+          }).toMap
         case Failure(exception) =>
           sys.error(s"Error uploading jar to S3 lambda: ${formatException(exception)}")
       }
@@ -147,7 +156,12 @@ object AwsLambdaPlugin extends AutoPlugin {
       sys.error(s"Unsupported deploy method: ${resolvedDeployMethod.value}")
   }
 
-  def updateFunctionCode(resolvedRegion: Region, resolvedLambdaName: LambdaName, updateFunctionCodeRequest: UpdateFunctionCodeRequest, version: String): (String, LambdaARN) = {
+  def updateFunctionCode(
+    resolvedRegion: Region,
+    resolvedLambdaName: LambdaName,
+    updateFunctionCodeRequest: UpdateFunctionCodeRequest,
+    version: String,
+  ): (String, LambdaARN) = {
     val lambdaClient = new AwsLambda(wrapper.AwsLambda.instance(resolvedRegion))
     lambdaClient.updateLambdaWithFunctionCodeRequest(updateFunctionCodeRequest, version) match {
       case Success(updateFunctionCodeResult) =>
@@ -158,7 +172,10 @@ object AwsLambdaPlugin extends AutoPlugin {
     }
   }
 
-  def computeEnvironment(current_ : JMap[String, String], desired: Map[String, String]): (Boolean, Environment) = {
+  def computeEnvironment(
+    current_ : JMap[String, String],
+    desired: Map[String, String],
+  ): (Boolean, Environment) = {
     val current = Option(current_).fold(Map.empty[String, String])(_.asScala.toMap)
 
     // We want to keep env vars that are set in the lambda but missing in the settings, as they may have been added manually (eg. encrypted env vars)
@@ -167,11 +184,23 @@ object AwsLambdaPlugin extends AutoPlugin {
     needsUpdate -> new Environment().withVariables((current ++ desired).asJava)
   }
 
-  private def doConfigureLambda(lambdaName: Option[String], region: Option[String], handlerName: Option[String],
-                                lambdaHandlers: Seq[(String, String)], roleArn: Option[String], timeout: Option[Int],
-                                memory: Option[Int], deadLetterArn: Option[String], vpcConfigSubnetIds: Option[String],
-                                vpcConfigSecurityGroupIds: Option[String], environment: Map[String, String],
-                                deployMethod: Option[String], jar: File, s3Bucket: Option[String], s3KeyPrefix: Option[String], version: String): Map[String, LambdaARN] = {
+  private def doConfigureLambda(
+    lambdaName: Option[String],
+    region: Option[String],
+    handlerName: Option[String],
+    lambdaHandlers: Seq[(String, String)],
+    roleArn: Option[String],
+    timeout: Option[Int],
+    memory: Option[Int],
+    deadLetterArn: Option[String],
+    vpcConfigSubnetIds: Option[String],
+    vpcConfigSecurityGroupIds: Option[String],
+    environment: Map[String, String],
+    deployMethod: Option[String],
+    jar: File, s3Bucket: Option[String],
+    s3KeyPrefix: Option[String],
+    version: String,
+  ): Map[String, LambdaARN] = {
     val resolvedLambdaHandlers = resolveLambdaHandlers(lambdaName, handlerName, lambdaHandlers)
     val resolvedRegion = resolveRegion(region)
     val resolvedRoleName = resolveRoleARN(roleArn)
@@ -211,21 +240,41 @@ object AwsLambdaPlugin extends AutoPlugin {
               sys.error(s"Unsupported deploy method: $resolvedDeployMethod")
             }
           }
-          lambdaClient.createLambda(resolvedLambdaName, resolvedHandlerName, resolvedRoleName, resolvedTimeout, resolvedMemory, resolvedDeadLetterArn, resolvedVpcConfig, functionCode, resolvedEnvironment, version).map(_.getFunctionArn)
+          lambdaClient.createLambda(
+            resolvedLambdaName,
+            resolvedHandlerName,
+            resolvedRoleName,
+            resolvedTimeout,
+            resolvedMemory,
+            resolvedDeadLetterArn,
+            resolvedVpcConfig,
+            functionCode,
+            resolvedEnvironment,
+            version,
+          ).map(_.getFunctionArn)
         }{ currentConfig =>
           val currentEnv = Option(currentConfig.getEnvironment).fold(Collections.emptyMap[String, String]())(_.getVariables)
           val (envUpdated, resolvedEnvironment) = computeEnvironment(currentEnv, environment)
           if (currentConfig.getHandler != resolvedHandlerName.value ||
               currentConfig.getRole != resolvedRoleName.value ||
-              currentConfig.getRuntime != com.amazonaws.services.lambda.model.Runtime.Java8.toString ||
+              currentConfig.getRuntime != Runtime.Java8.toString ||
               envUpdated ||
               resolvedTimeout.exists(t => Integer.valueOf(t.value) != currentConfig.getTimeout) ||
               resolvedMemory.exists(m => Integer.valueOf(m.value) != currentConfig.getMemorySize) ||
               resolvedVpcConfig.exists(vpn => currentConfig.getVpcConfig == null || vpn.getSecurityGroupIds != currentConfig.getVpcConfig.getSecurityGroupIds || vpn.getSubnetIds != currentConfig.getVpcConfig.getSubnetIds)
           ) {
             println(s"Updating existing lambda: ${resolvedLambdaName.value}")
-            lambdaClient.updateLambdaConfig(resolvedLambdaName, resolvedHandlerName, resolvedRoleName, resolvedTimeout, resolvedMemory,
-              resolvedDeadLetterArn, resolvedVpcConfig, resolvedEnvironment, version).map(_.getFunctionArn)
+            lambdaClient.updateLambdaConfig(
+              resolvedLambdaName,
+              resolvedHandlerName,
+              resolvedRoleName,
+              resolvedTimeout,
+              resolvedMemory,
+              resolvedDeadLetterArn,
+              resolvedVpcConfig,
+              resolvedEnvironment,
+              version,
+            ).map(_.getFunctionArn)
           } else {
             println(s"Skipping unchanged lambda: ${resolvedLambdaName.value}")
             Success(currentConfig.getFunctionArn)
@@ -240,8 +289,24 @@ object AwsLambdaPlugin extends AutoPlugin {
     }
   }
 
-  private def doCreateLambda(deployMethod: Option[String], region: Option[String], jar: File, s3Bucket: Option[String], s3KeyPrefix: Option[String], lambdaName: Option[String],
-      handlerName: Option[String], lambdaHandlers: Seq[(String, String)], roleArn: Option[String], timeout: Option[Int], memory: Option[Int], deadLetterArn: Option[String], vpcConfigSubnetIds: Option[String], vpcConfigSecurityGroupIds: Option[String], environment: Map[String, String], version: String): Map[String, LambdaARN] = {
+  private def doCreateLambda(
+    deployMethod: Option[String],
+    region: Option[String],
+    jar: File,
+    s3Bucket: Option[String],
+    s3KeyPrefix: Option[String],
+    lambdaName: Option[String],
+    handlerName: Option[String],
+    lambdaHandlers: Seq[(String, String)],
+    roleArn: Option[String],
+    timeout: Option[Int],
+    memory: Option[Int],
+    deadLetterArn: Option[String],
+    vpcConfigSubnetIds: Option[String],
+    vpcConfigSecurityGroupIds: Option[String],
+    environment: Map[String, String],
+    version: String,
+  ): Map[String, LambdaARN] = {
     val resolvedDeployMethod = resolveDeployMethod(deployMethod).value
     val resolvedRegion = resolveRegion(region)
     val resolvedLambdaHandlers = resolveLambdaHandlers(lambdaName, handlerName, lambdaHandlers)
@@ -268,8 +333,19 @@ object AwsLambdaPlugin extends AutoPlugin {
           for ((resolvedLambdaName, resolvedHandlerName) <- resolvedLambdaHandlers) yield {
             val functionCode = new FunctionCode().withS3Bucket(resolvedBucketId.value).withS3Key(jar.getName)
 
-            createLambdaWithFunctionCode(resolvedRegion, resolvedRoleName, resolvedTimeout, resolvedMemory,
-              resolvedLambdaName, resolvedHandlerName, resolvedDeadLetterArn, resolvedVpcConfig, functionCode, resolvedEnvironment, version)
+            createLambdaWithFunctionCode(
+              resolvedRegion,
+              resolvedRoleName,
+              resolvedTimeout,
+              resolvedMemory,
+              resolvedLambdaName,
+              resolvedHandlerName,
+              resolvedDeadLetterArn,
+              resolvedVpcConfig,
+              functionCode,
+              resolvedEnvironment,
+              version,
+            )
           }
         case Failure(exception) =>
           sys.error(s"Error upload jar to S3 lambda: ${formatException(exception)}")
@@ -278,18 +354,51 @@ object AwsLambdaPlugin extends AutoPlugin {
       for ((resolvedLambdaName, resolvedHandlerName) <- resolvedLambdaHandlers) yield {
         val functionCode = new FunctionCode().withZipFile(FileOps.fileToBuffer(jar))
 
-        createLambdaWithFunctionCode(resolvedRegion, resolvedRoleName, resolvedTimeout, resolvedMemory,
-          resolvedLambdaName, resolvedHandlerName, resolvedDeadLetterArn, resolvedVpcConfig, functionCode, resolvedEnvironment, version)
+        createLambdaWithFunctionCode(
+          resolvedRegion,
+          resolvedRoleName,
+          resolvedTimeout,
+          resolvedMemory,
+          resolvedLambdaName,
+          resolvedHandlerName,
+          resolvedDeadLetterArn,
+          resolvedVpcConfig,
+          functionCode,
+          resolvedEnvironment,
+          version,
+        )
       }
     } else {
       sys.error(s"Unsupported deploy method: $resolvedDeployMethod")
     }
   }
 
-  def createLambdaWithFunctionCode(resolvedRegion: Region, resolvedRoleName: RoleARN, resolvedTimeout: Option[Timeout], resolvedMemory: Option[Memory], resolvedLambdaName: LambdaName, resolvedHandlerName: HandlerName, resolvedDeadLetterArn: Option[DeadLetterARN], vpcConfig: Option[VpcConfig], functionCode: FunctionCode, environment: Environment, version: String): (String, LambdaARN) = {
+  def createLambdaWithFunctionCode(
+    resolvedRegion: Region,
+    resolvedRoleName: RoleARN,
+    resolvedTimeout: Option[Timeout],
+    resolvedMemory: Option[Memory],
+    resolvedLambdaName: LambdaName,
+    resolvedHandlerName: HandlerName,
+    resolvedDeadLetterArn: Option[DeadLetterARN],
+    vpcConfig: Option[VpcConfig],
+    functionCode: FunctionCode,
+    environment: Environment,
+    version: String,
+  ): (String, LambdaARN) = {
     val lambdaClient = new AwsLambda(wrapper.AwsLambda.instance(resolvedRegion))
-    lambdaClient.createLambda(resolvedLambdaName, resolvedHandlerName, resolvedRoleName,
-      resolvedTimeout, resolvedMemory, resolvedDeadLetterArn, vpcConfig, functionCode, environment, version) match {
+    lambdaClient.createLambda(
+      resolvedLambdaName,
+      resolvedHandlerName,
+      resolvedRoleName,
+      resolvedTimeout,
+      resolvedMemory,
+      resolvedDeadLetterArn,
+      vpcConfig,
+      functionCode,
+      environment,
+      version,
+    ) match {
       case Success(createFunctionCodeResult) =>
         resolvedLambdaName.value -> LambdaARN(createFunctionCodeResult.getFunctionArn)
       case Failure(exception) =>
@@ -297,20 +406,36 @@ object AwsLambdaPlugin extends AutoPlugin {
     }
   }
 
-  private def resolveRegion(sbtSettingValueOpt: Option[String]): Region =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.region) map Region getOrElse promptUserForRegion()
+  private def resolveRegion(
+    sbtSettingValueOpt: Option[String],
+  ): Region = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.region)).map(Region).getOrElse(promptUserForRegion())
+  }
 
-  private def resolveDeployMethod(sbtSettingValueOpt: Option[String]): DeployMethod =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.deployMethod) map DeployMethod getOrElse promptUserForDeployMethod()
+  private def resolveDeployMethod(
+    sbtSettingValueOpt: Option[String],
+  ): DeployMethod = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.deployMethod)).map(DeployMethod).getOrElse(promptUserForDeployMethod())
+  }
 
-  private def resolveBucketId(region: Region, sbtSettingValueOpt: Option[String]): S3BucketId =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.bucketId) map S3BucketId getOrElse promptUserForS3BucketId(region)
+  private def resolveBucketId(
+    region: Region,
+    sbtSettingValueOpt: Option[String],
+  ): S3BucketId = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.bucketId)).map(S3BucketId).getOrElse(promptUserForS3BucketId(region))
+  }
 
-  private def resolveS3KeyPrefix(sbtSettingValueOpt: Option[String]): String =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.s3KeyPrefix) getOrElse ""
+  private def resolveS3KeyPrefix(
+    sbtSettingValueOpt: Option[String],
+  ): String = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.s3KeyPrefix)).getOrElse("")
+  }
 
-  private def resolveLambdaHandlers(lambdaName: Option[String], handlerName: Option[String],
-      lambdaHandlers: Seq[(String, String)]): Map[LambdaName, HandlerName] = {
+  private def resolveLambdaHandlers(
+    lambdaName: Option[String],
+    handlerName: Option[String],
+    lambdaHandlers: Seq[(String, String)],
+  ): Map[LambdaName, HandlerName] = {
     val lhs = if (lambdaHandlers.nonEmpty) lambdaHandlers.iterator else {
       val l = lambdaName.getOrElse(sys.env.getOrElse(EnvironmentVariables.lambdaName, promptUserForFunctionName()))
       val h = handlerName.getOrElse(sys.env.getOrElse(EnvironmentVariables.handlerName, promptUserForHandlerName()))
@@ -319,43 +444,65 @@ object AwsLambdaPlugin extends AutoPlugin {
     lhs.map { case (l, h) => LambdaName(l) -> HandlerName(h) }.toMap
   }
 
-  private def resolveRoleARN(sbtSettingValueOpt: Option[String]): RoleARN =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.roleArn) map RoleARN getOrElse promptUserForRoleARN()
+  private def resolveRoleARN(
+    sbtSettingValueOpt: Option[String],
+  ): RoleARN = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.roleArn)).map(RoleARN(_)).getOrElse(promptUserForRoleARN())
+  }
 
-  private def resolveTimeout(sbtSettingValueOpt: Option[Int]): Option[Timeout] =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.timeout).map(_.toInt) map Timeout
+  private def resolveTimeout(
+    sbtSettingValueOpt: Option[Int],
+  ): Option[Timeout] = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.timeout).map(_.toInt)).map(Timeout(_))
+  }
 
-  private def resolveMemory(sbtSettingValueOpt: Option[Int]): Option[Memory] =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.memory).map(_.toInt) map Memory
+  private def resolveMemory(
+    sbtSettingValueOpt: Option[Int],
+  ): Option[Memory] = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.memory).map(_.toInt)).map(Memory(_))
+  }
 
-  private def resolveDeadLetterARN(sbtSettingValueOpt: Option[String]): Option[DeadLetterARN] =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.deadLetterArn).map(_.toString) map DeadLetterARN
+  private def resolveDeadLetterARN(
+    sbtSettingValueOpt: Option[String],
+  ): Option[DeadLetterARN] = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.deadLetterArn)).map(DeadLetterARN(_))
+  }
 
-  private def resolveVpcConfigSubnetIds(sbtSettingValueOpt: Option[String]): Option[VpcConfigSubnetIds] =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.vpcConfigSubnetIds).map(_.toString) map VpcConfigSubnetIds
+  private def resolveVpcConfigSubnetIds(
+    sbtSettingValueOpt: Option[String],
+  ): Option[VpcConfigSubnetIds] = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.vpcConfigSubnetIds)).map(VpcConfigSubnetIds(_))
+  }
 
-  private def resolveVpcConfigSecurityGroupIds(sbtSettingValueOpt: Option[String]): Option[VpcConfigSecurityGroupIds] =
-    sbtSettingValueOpt orElse sys.env.get(EnvironmentVariables.vpcConfigSecurityGroupIds).map(_.toString) map VpcConfigSecurityGroupIds
+  private def resolveVpcConfigSecurityGroupIds(
+    sbtSettingValueOpt: Option[String],
+  ): Option[VpcConfigSecurityGroupIds] = {
+    sbtSettingValueOpt.orElse(sys.env.get(EnvironmentVariables.vpcConfigSecurityGroupIds)).map(VpcConfigSecurityGroupIds(_))
+  }
 
-  private def promptUserForRegion(): Region = {
+  private def promptUserForRegion(
+  ): Region = {
     val inputValue = readInput(s"Enter the name of the AWS region to connect to. (You also could have set the environment variable: ${EnvironmentVariables.region} or the sbt setting: region)")
 
     Region(inputValue)
   }
 
-  private def promptUserForDeployMethod(): DeployMethod = {
+  private def promptUserForDeployMethod(
+  ): DeployMethod = {
     val inputValue = readInput(s"Enter the method of deploy you want to use (S3 or DIRECT). (You also could have set the environment variable: ${EnvironmentVariables.deployMethod} or the sbt setting: deployMethod)")
 
     DeployMethod(inputValue)
   }
 
-  private def promptUserForS3BucketId(resolvedRegion: Region): S3BucketId = {
+  private def promptUserForS3BucketId(
+    resolvedRegion: Region,
+  ): S3BucketId = {
     val inputValue = readInput(s"Enter the AWS S3 bucket where the lambda jar will be stored. (You also could have set the environment variable: ${EnvironmentVariables.bucketId} or the sbt setting: s3Bucket)")
     val bucketId = S3BucketId(inputValue)
 
     val s3Client = new AwsS3(wrapper.AmazonS3.instance(resolvedRegion))
 
-    s3Client.getBucket(bucketId) map (_ => bucketId) getOrElse {
+    s3Client.getBucket(bucketId).map (_ => bucketId).getOrElse {
       val createBucket = readInput(s"Bucket $inputValue does not exist. Create it now? (y/n)")
 
       if(createBucket == "y") {
@@ -371,13 +518,18 @@ object AwsLambdaPlugin extends AutoPlugin {
     }
   }
 
-  private def promptUserForFunctionName(): String =
+  private def promptUserForFunctionName(
+  ): String = {
     readInput(s"Enter the name of the AWS Lambda. (You also could have set the environment variable: ${EnvironmentVariables.lambdaName} or the sbt setting: lambdaName)")
+  }
 
-  private def promptUserForHandlerName(): String =
+  private def promptUserForHandlerName(
+  ): String = {
     readInput(s"Enter the name of the AWS Lambda handler. (You also could have set the environment variable: ${EnvironmentVariables.handlerName} or the sbt setting: handlerName)")
+  }
 
-  private def promptUserForRoleARN(): RoleARN = {
+  private def promptUserForRoleARN(
+  ): RoleARN = {
     val iamClient = new AwsIAM(wrapper.AmazonIdentityManagement.instance)
     iamClient.basicLambdaRole() match {
       case Some(basicRole) =>
@@ -400,21 +552,31 @@ object AwsLambdaPlugin extends AutoPlugin {
     }
   }
 
-  private def readRoleARN(): RoleARN = {
+  private def readRoleARN(
+  ): RoleARN = {
     val inputValue = readInput(s"Enter the ARN of the IAM role for the Lambda. (You also could have set the environment variable: ${EnvironmentVariables.roleArn} or the sbt setting: roleArn)")
     RoleARN(inputValue)
   }
 
-  private def readInput(prompt: String): String =
-    SimpleReader.readLine(s"$prompt\n") getOrElse {
+  private def readInput(
+    prompt: String,
+  ): String = {
+    SimpleReader.readLine(s"$prompt\n").getOrElse {
       val badInputMessage = "Unable to read input"
 
-      val updatedPrompt = if(prompt.startsWith(badInputMessage)) prompt else s"$badInputMessage\n$prompt"
+      val updatedPrompt = if(prompt.startsWith(badInputMessage)) {
+        prompt
+      } else {
+        s"$badInputMessage\n$prompt"
+      }
 
       readInput(updatedPrompt)
     }
+  }
 
-  private def formatException(t: Throwable) = {
+  private def formatException(
+    t: Throwable,
+  ) = {
     val msg = Option(t.getLocalizedMessage).getOrElse(t.toString)
     s"$msg\n${t.getStackTrace.mkString("","\n","\n")}"
   }

@@ -10,7 +10,8 @@ object AwsIAM {
 
 private[lambda] class AwsIAM(client: wrapper.AmazonIdentityManagement) {
 
-  def basicLambdaRole(): Option[Role] = {
+  def basicLambdaRole(
+  ): Option[Role] = {
     client.listRoles()
       .toOption
       .flatMap { result =>
@@ -18,7 +19,8 @@ private[lambda] class AwsIAM(client: wrapper.AmazonIdentityManagement) {
       }
   }
 
-  def createBasicLambdaRole(): Try[RoleARN] = {
+  def createBasicLambdaRole(
+  ): Try[RoleARN] = {
     val createRoleRequest = {
       val policyDocument = """{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}"""
       new CreateRoleRequest()
