@@ -30,7 +30,7 @@ object AwsLambdaPlugin extends AutoPlugin {
     val vpcConfigSubnetIds = settingKey[Option[String]]("Comma separated list of subnet IDs for the VPC")
     val vpcConfigSecurityGroupIds = settingKey[Option[String]]("Comma separated list of security group IDs for the VPC")
     val environment = settingKey[Seq[(String, String)]]("A sequence of environment keys and values")
-    val lambdaRuntime = settingKey[Option[String]](s"""The Lambda Runtime.""")
+    val lambdaRuntime = settingKey[Option[String]](s"""The Lambda Runtime. Type 'supportedRuntimes' to confirming supported runtimes""")
     val packageLambda = taskKey[File]("The action to package the lambda jar file")
     private[lambda] val resolveRuntime = taskKey[Runtime]("Resolve lambda runtime")
     private[lambda] val supportedLambdaRuntimes = settingKey[Set[Runtime]]("Supported runtime")
