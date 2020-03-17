@@ -22,10 +22,9 @@ object AwsLambdaScalaJSPlugin extends AutoPlugin {
       )
     }.dependsOn(Compile / fastOptJS).value,
     supportedLambdaRuntimes := List(
-      LambdaRuntime.Nodejs10X,
-      LambdaRuntime.Nodejs12X
-    ).map(_.toString),
-    defaultRuntime := LambdaRuntime.Nodejs12X
+      LambdaRuntime.Nodejs12X,
+      LambdaRuntime.Nodejs10X
+    ).map(_.toString)
   )
 
   def doPackageLambda(projectName: String, scalaBinaryVersion: String, baseDir: sbt.File): sbt.File = {
