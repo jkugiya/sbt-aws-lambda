@@ -30,10 +30,10 @@ object AwsLambdaPlugin extends AutoPlugin {
     val vpcConfigSubnetIds = settingKey[Option[String]]("Comma separated list of subnet IDs for the VPC")
     val vpcConfigSecurityGroupIds = settingKey[Option[String]]("Comma separated list of security group IDs for the VPC")
     val environment = settingKey[Seq[(String, String)]]("A sequence of environment keys and values")
-    val lambdaRuntime = settingKey[Option[String]](s"""The Lambda Runtime. Type 'supportedRuntimes' to confirming supported runtimes""")
+    val lambdaRuntime = settingKey[String](s"""The Lambda Runtime. Type 'supportedRuntimes' to confirming supported runtimes""")
     val packageLambda = taskKey[File]("The action to package the lambda jar file")
     private[lambda] val resolveRuntime = taskKey[Runtime]("Resolve lambda runtime")
-    private[lambda] val supportedLambdaRuntimes = settingKey[Set[Runtime]]("Supported runtime")
+    private[lambda] val supportedLambdaRuntimes = settingKey[List[String]]("Supported runtime")
     private[lambda] val defaultRuntime = settingKey[Runtime]("Default lambda runtime")
   }
 
@@ -105,11 +105,9 @@ object AwsLambdaPlugin extends AutoPlugin {
       version = version.value
     ),
     resolveRuntime := Def.task {
+      val resolvedRuntime = lambdaRuntime.value
       val resolvedSupportedRuntime = supportedLambdaRuntimes.value
-      val resolvedDefaultRuntime = defaultRuntime.value
-      lambdaRuntime.value.orElse(sys.env.get(EnvironmentVariables.lambdaRuntime)).map { rt =>
-        resolveLambdaRuntime(Some(promptUserForLambdaRuntime(rt, resolvedSupportedRuntime)), resolvedSupportedRuntime)
-      }.getOrElse(resolvedDefaultRuntime)
+        resolveLambdaRuntime(promptUserForLambdaRuntime(resolvedRuntime, resolvedSupportedRuntime), resolvedSupportedRuntime)
     }.value,
     s3Bucket := None,
     lambdaName := Some(sbt.Keys.name.value),
@@ -124,12 +122,12 @@ object AwsLambdaPlugin extends AutoPlugin {
     vpcConfigSubnetIds := None,
     vpcConfigSecurityGroupIds := None,
     environment := Nil,
-    lambdaRuntime := None,
-    packageLambda := sbtassembly.AssemblyKeys.assembly.value,
-    supportedLambdaRuntimes := Set(
+    supportedLambdaRuntimes := List(
       Runtime.Java8,
       Runtime.Java11
-    )
+    ).map(_.toString),
+    lambdaRuntime := supportedLambdaRuntimes.value.head,
+    packageLambda := sbtassembly.AssemblyKeys.assembly.value
   )
 
   private def doDeployLambda(
@@ -217,7 +215,7 @@ object AwsLambdaPlugin extends AutoPlugin {
     vpcConfigSubnetIds: Option[String],
     vpcConfigSecurityGroupIds: Option[String],
     environment: Map[String, String],
-    lambdaRuntime: Option[String],
+    lambdaRuntime: String,
     deployMethod: Option[String],
     jar: File, s3Bucket: Option[String],
     s3KeyPrefix: Option[String],
@@ -330,7 +328,7 @@ object AwsLambdaPlugin extends AutoPlugin {
     vpcConfigSubnetIds: Option[String],
     vpcConfigSecurityGroupIds: Option[String],
     environment: Map[String, String],
-    lambdaRuntime: Option[String],
+    lambdaRuntime: String,
     version: String,
     resolvedRuntime: Runtime
   ): Map[String, LambdaARN] = {
@@ -511,16 +509,14 @@ object AwsLambdaPlugin extends AutoPlugin {
   }
 
   def resolveLambdaRuntime(
-    lambdaRuntime: Option[String], supportedLambdaRuntimes: Set[Runtime]
+    lambdaRuntime: String, supportedLambdaRuntimes: List[String]
   ): Runtime = {
-    lambdaRuntime.orElse(sys.env.get(EnvironmentVariables.lambdaRuntime)).map(rt =>
-      if (!supportedLambdaRuntimes.exists(prt => prt.toString == rt)) resolveLambdaRuntime(Some(promptUserForLambdaRuntime(rt, supportedLambdaRuntimes)), supportedLambdaRuntimes)
-      else {
-        Try(Runtime.fromValue(rt)).toOption.getOrElse(
-          resolveLambdaRuntime(Some(promptUserForLambdaRuntime(rt, supportedLambdaRuntimes)), supportedLambdaRuntimes)
-        )
-      }
-    ).getOrElse(Runtime.Java8)
+    if (!supportedLambdaRuntimes.contains(lambdaRuntime)) resolveLambdaRuntime(promptUserForLambdaRuntime(lambdaRuntime, supportedLambdaRuntimes), supportedLambdaRuntimes)
+    else {
+      Try(Runtime.fromValue(lambdaRuntime)).toOption.getOrElse(
+        resolveLambdaRuntime(promptUserForLambdaRuntime(lambdaRuntime, supportedLambdaRuntimes), supportedLambdaRuntimes)
+      )
+    }
   }
 
   private def promptUserForRegion(
@@ -596,7 +592,7 @@ object AwsLambdaPlugin extends AutoPlugin {
   }
 
   private def promptUserForLambdaRuntime(
-    invalidRuntime: String, supportedLambdaRuntimes: Set[Runtime]
+    invalidRuntime: String, supportedLambdaRuntimes: List[String]
   ): String = {
     readInput(s"Invalid runtime [$invalidRuntime]. Enter the name of the AWS Lambda runtime. Currently supported values are [${supportedLambdaRuntimes.mkString(",")}]")
   }

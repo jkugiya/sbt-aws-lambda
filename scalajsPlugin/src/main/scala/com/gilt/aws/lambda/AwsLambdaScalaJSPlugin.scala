@@ -21,10 +21,10 @@ object AwsLambdaScalaJSPlugin extends AutoPlugin {
         baseDir = baseDirectory.value
       )
     }.dependsOn(Compile / fastOptJS).value,
-    supportedLambdaRuntimes := Set(
+    supportedLambdaRuntimes := List(
       LambdaRuntime.Nodejs10X,
       LambdaRuntime.Nodejs12X
-    ),
+    ).map(_.toString),
     defaultRuntime := LambdaRuntime.Nodejs12X
   )
 
