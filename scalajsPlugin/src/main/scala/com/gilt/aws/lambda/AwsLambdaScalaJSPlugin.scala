@@ -44,7 +44,7 @@ object AwsLambdaScalaJSPlugin extends AutoPlugin {
         buildDir.resolve(file.getName),
         StandardCopyOption.REPLACE_EXISTING)
     }
-    val zipPath = Paths.get(baseDir.getAbsolutePath, "target", "lambda.zip")
+    val zipPath = Paths.get(baseDir.getAbsolutePath, "target", s"${projectName}.zip")
     FileUtils.packageDir(buildDir, zipPath)
     zipPath.toFile
   }
