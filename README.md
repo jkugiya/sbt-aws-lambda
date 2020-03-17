@@ -11,7 +11,7 @@ Installation
 Add the following to your `project/plugins.sbt` file:
 
 ```scala
-addSbtPlugin("org.gfccollective" % "sbt-aws-lambda" % "1.1.0")
+addSbtPlugin("org.gfccollective" % "sbt-aws-lambda" % "1.2.0")
 ```
 
 Add the `AwsLambdaPlugin` auto-plugin to your build.sbt:
@@ -118,7 +118,7 @@ Add the following to your `project/plugins.sbt` file:
 
 ```scala
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.0.0")
-addSbtPlugin("org.gfccollective" % "sbt-aws-lambda-scalajs" % "1.1.0")
+addSbtPlugin("org.gfccollective" % "sbt-aws-lambda-scalajs" % "1.2.0")
 ```
 
 Add the following plugins to your build.sbt:
